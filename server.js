@@ -30,25 +30,44 @@ app.post("/api/convert", upload.single("video"), async (req, res) => {
     if (!process.env.FAL_KEY) return res.status(503).json({ error: "AI service is not configured yet." });
     if (!req.file) return res.status(400).json({ error: "Choose a video first." });
 
+    // Wan 2.7 edit-video accepts 2–10 second source clips, up to 100 MB.
+    // duration: "0" tells the model to match the source clip's duration.
     const prompt = [
-      "Transform the entire input video into a polished 2D animated cartoon.",
-      "Use clean hand-drawn outlines, appealing cel shading, coherent illustrated backgrounds,",
-      "consistent character designs, expressive but faithful faces, and smooth animation.",
-      "Preserve the original scene composition, subjects, clothing, actions, timing, camera movement,",
-      "framing and sequence of events as closely as possible. Do not add new characters or scenes.",
-      "Keep the visual style consistent across every frame. Avoid flicker, morphing and unwanted text."
+      "Restyle the entire input video as a high-quality, polished 3D animated film.",
+      "Render subjects and environments as dimensional 3D computer-generated animation,",
+      "with coherent geometry, detailed materials, natural lighting, cinematic shading,",
+      "and smooth, temporally consistent motion.",
+      "Preserve the original scenes, subjects, objects, actions, gestures, timing, shot order,",
+      "composition, framing, camera movements, camera angles and transitions as closely as possible.",
+      "Keep the same number of subjects and objects. Do not invent new scenes or change the story.",
+      "Maintain consistent character appearance and environment details across every frame.",
+      "Avoid flicker, shape warping, unwanted text, abrupt cuts and unintended camera changes."
     ].join(" ");
 
     const videoFile = new File([req.file.buffer], req.file.originalname || "reference.mp4", { type: req.file.mimetype });
     const videoUrl = await fal.storage.upload(videoFile);
     const result = await fal.subscribe(MODEL, {
-      input: { prompt, video_url: videoUrl, resolution: "720p", audio_setting: "origin", enable_safety_checker: true },
+      input: {
+        prompt,
+        video_url: videoUrl,
+        resolution: "1080p",
+        duration: "0",
+        audio_setting: "origin",
+        enable_safety_checker: true
+      },
       logs: true
     });
 
     const output = result?.data?.video;
     if (!output?.url) return res.status(502).json({ error: "AI service did not return a finished video. Please try again." });
-    res.json({ ok: true, videoUrl: output.url, fileName: output.file_name || "animated-video.mp4" });
+    res.json({
+      ok: true,
+      videoUrl: output.url,
+      fileName: output.file_name || "3d-animated-video.mp4",
+      duration: output.duration,
+      width: output.width,
+      height: output.height
+    });
   } catch (err) {
     console.error("Conversion error:", err);
     res.status(400).json({ error: err?.message || "Conversion failed." });

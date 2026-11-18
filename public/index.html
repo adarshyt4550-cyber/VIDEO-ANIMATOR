@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10131d">
+  <title>AI Video Animator — 2D Converter</title>
+  <style>
+    :root { color-scheme:dark; --bg:#0d1018; --panel:#171c29; --line:#2a3347; --muted:#9ba7bd; --accent:#8b7cff; --good:#54d6a0 }
+    * { box-sizing:border-box }
+    body { margin:0; min-height:100vh; background:radial-gradient(ellipse at top,#222344 0,#0d1018 48%); color:#f5f6fb; font:16px/1.5 Inter,ui-sans-serif,system-ui,Arial,sans-serif }
+    main { width:min(760px,calc(100% - 32px)); margin:48px auto }
+    header { text-align:center; margin-bottom:28px }
+    .eyebrow { color:#b7adff; font-size:12px; font-weight:800; letter-spacing:.18em }
+    h1 { margin:8px 0; font-size:clamp(30px,6vw,48px); line-height:1.05; letter-spacing:-.04em }
+    header p,.muted { color:var(--muted) }
+    .card { background:rgba(23,28,41,.94); border:1px solid var(--line); border-radius:22px; padding:24px; box-shadow:0 24px 70px #0005 }
+    .drop { display:grid; place-items:center; min-height:190px; padding:24px; border:1.5px dashed #626b89; border-radius:16px; text-align:center; cursor:pointer; background:#111725; transition:.2s }
+    .drop:hover,.drop.drag { border-color:var(--accent); background:#1b1b35 }
+    .upload-icon { font-size:36px; margin-bottom:8px }
+    input[type=file] { display:none }
+    .file-name { margin-top:10px; color:#d8d5ff; overflow-wrap:anywhere; font-size:14px }
+    .style-row { display:flex; gap:12px; margin:20px 0 }
+    .style { flex:1; padding:15px; border:1px solid var(--line); border-radius:14px; background:#111725; text-align:center }
+    .style.selected { border:2px solid var(--good); padding:14px; background:#14251f }
+    .style strong { display:block; font-size:18px }
+    .style small { color:var(--muted) }
+    button { width:100%; border:0; border-radius:13px; padding:15px 18px; color:white; background:linear-gradient(100deg,#7868f5,#a45ce9); font-size:16px; font-weight:800; cursor:pointer }
+    button:disabled { opacity:.5; cursor:not-allowed }
+    .status { display:none; margin-top:18px; padding:14px; border-radius:12px; background:#111725; color:#dfe4f2; white-space:pre-wrap }
+    .status.show { display:block }
+    .spinner { display:inline-block; width:15px; height:15px; border:2px solid #777; border-top-color:white; border-radius:50%; animation:spin .8s linear infinite; vertical-align:-2px; margin-right:8px }
+    @keyframes spin { to { transform:rotate(360deg) } }
+    .result { display:none; margin-top:20px }
+    .result.show { display:block }
+    video { width:100%; border-radius:14px; background:#000; margin:12px 0 }
+    a.download { display:block; text-align:center; color:white; background:#237a5c; text-decoration:none; padding:13px; border-radius:12px; font-weight:800 }
+    .fine { font-size:12px; color:var(--muted); margin-top:18px }
+    @media(max-width:520px) { main{margin:24px auto}.card{padding:16px}.style-row{gap:8px}.style{padding:12px 6px} }
+  </style>
+</head>
+<body>
+<main>
+  <header><div class="eyebrow">ONE-CLICK AI VIDEO RESTYLING</div><h1>AI Video Animator</h1><p>Upload a clip. Convert it into a 2D animated look.</p></header>
+  <section class="card">
+    <label class="drop" id="drop" for="video"><div><div class="upload-icon">⇧</div><strong>Choose or drop your reference video</strong><div class="muted">MP4 or MOV · 2–10 seconds · up to 100 MB</div><div class="file-name" id="fileName">No video selected</div></div></label>
+    <input id="video" type="file" accept="video/mp4,video/quicktime">
+    <div class="style-row"><div class="style selected"><strong>2D Animation</strong><small>Selected conversion style</small></div><div class="style" style="opacity:.45"><strong>3D Animation</strong><small>Coming later</small></div></div>
+    <button id="convert" disabled>Convert to 2D Animation</button>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div class="result" id="result"><h2>Your animated video</h2><video id="output" controls playsinline></video><a class="download" id="download" target="_blank" rel="noopener">Open / Download MP4</a></div>
+    <p class="fine">Your video is sent to the AI processing provider. Only upload videos you own or have permission to use. AI output may differ from the original and should be reviewed.</p>
+  </section>
+</main>
+<script>
+  const input=document.querySelector("#video"),drop=document.querySelector("#drop"),fileName=document.querySelector("#fileName"),convert=document.querySelector("#convert"),statusBox=document.querySelector("#status"),result=document.querySelector("#result"),output=document.querySelector("#output"),download=document.querySelector("#download");
+  let selectedFile=null;
+  function setFile(file){if(!file)return;if(!["video/mp4","video/quicktime"].includes(file.type)){showStatus("Please select an MP4 or MOV file.");return}if(file.size>100*1024*1024){showStatus("This file is over the 100 MB limit.");return}selectedFile=file;fileName.textContent=file.name;convert.disabled=false;result.classList.remove("show");statusBox.classList.remove("show")}
+  function showStatus(message,busy=false){statusBox.innerHTML=(busy?'<span class="spinner"></span>':"")+escapeHtml(message);statusBox.classList.add("show")}
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+  input.addEventListener("change",e=>setFile(e.target.files[0]));
+  ["dragenter","dragover"].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.add("drag")}));
+  ["dragleave","drop"].forEach(evt=>drop.addEventListener(evt,e=>{e.preventDefault();drop.classList.remove("drag")}));
+  drop.addEventListener("drop",e=>setFile(e.dataTransfer.files[0]));
+  convert.addEventListener("click",async()=>{if(!selectedFile)return;convert.disabled=true;result.classList.remove("show");showStatus("Uploading your video and starting AI conversion. This can take a few minutes.",true);const form=new FormData();form.append("video",selectedFile);try{const response=await fetch("/api/convert",{method:"POST",body:form});const data=await response.json();if(!response.ok)throw new Error(data.error||"Conversion failed.");output.src=data.videoUrl;download.href=data.videoUrl;download.download=data.fileName||"animated-video.mp4";result.classList.add("show");showStatus("Conversion finished. Preview your video below.")}catch(err){showStatus(err.message||"Something went wrong. Please try again.")}finally{convert.disabled=false}});
+</script>
+</body>
+</html>
